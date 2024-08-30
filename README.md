@@ -20,3 +20,9 @@ pip install -e .
 ```
 
 ### Usage
+
+To apply a classification algorithm to a given task, you can use `ClassificationSuite/src/run.py`. An example is included below. 
+```
+cd ClassificationSuite/src/
+python run.py --scheme al --task princeton --sampler random --model gpc_ard --seed 42 --results_dir PATH_TO_RESULTS --visualize
+```
