@@ -8,4 +8,15 @@ The `classification-suite` repository contains the `ClassificationSuite` Python 
 
 ### Installation
 
+You can install the `ClassificationSuite` Python package in a new conda environment using the following commands:
+``` 
+conda deactivate
+conda env create -n class-env
+conda install python=3.11
+git clone https://github.com/webbtheosim/classification-suite.git
+cd classification-suite
+pip install -r requirements.txt
+pip install -e .
+```
+
 ### Usage
