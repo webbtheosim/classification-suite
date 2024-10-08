@@ -16,8 +16,11 @@ def load_data(task):
     # Get the absolute location of the utils.py script.
     path = Path(__file__).parent
 
-    # Load the dataset according to this path.
-    dataset = np.load(f'{path}/Datasets/{task}.npy')
+    # Load dataset from appropriate directory.
+    if 'morgan' or 'mordred' in task:
+        dataset = np.load(f'{path}/Datasets/Modified/{task}.npy')
+    else:
+        dataset = np.load(f'{path}/Datasets/{task}.npy')
 
     return dataset
 
