@@ -38,7 +38,7 @@ def run_active_learning(task, seed, sampler, model, visualize=False):
     rounds     = config[2]
 
     # Choose sample.
-    chosen_indices = sample(name=sampler, domain=X_all, size=seed_size, seed=seed)
+    chosen_indices = sample(name=sampler, domain=X_all, size=seed_size, seed=seed, task=task)
     chosen_x = X_all[chosen_indices,:]
     chosen_y = y_all[chosen_indices]
 
@@ -129,7 +129,7 @@ def run_space_filling(task, seed, sampler, model, visualize=False):
 
         # Choose sample.
         budget = i * batch_size + seed_size
-        chosen_indices = sample(name=sampler, domain=X_all, size=budget, seed=seed)
+        chosen_indices = sample(name=sampler, domain=X_all, size=budget, seed=seed, task=task)
         chosen_x = X_all[chosen_indices,:]
         chosen_y = y_all[chosen_indices]
 
