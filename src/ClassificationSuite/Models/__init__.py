@@ -11,6 +11,7 @@ from .sv import SV
 from .xgb import XGB
 from .tanimoto_gpc import TanimotoGPC
 from .tanimoto_gpr import TanimotoGPR
+from .tanimoto_sv import TanimotoSV
 
 from .ensembles import AbstractEnsemble
 from .ensembles import TopModelEnsemble

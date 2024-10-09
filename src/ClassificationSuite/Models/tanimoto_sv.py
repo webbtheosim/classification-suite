@@ -9,7 +9,7 @@ from skopt.space import Real, Integer, Categorical
 
 from ClassificationSuite.Models import AbstractModel
 
-class SV(AbstractModel):
+class TanimotoSV(AbstractModel):
     '''
         Implementation of a support vector classifier.
     '''
@@ -22,6 +22,7 @@ class SV(AbstractModel):
         self.train_x = None
         self.train_y = None
         self.explore = False
+        print('Using Tanimoto SV!')
 
     def train(self, cv=True, cv_score=False):
         '''
@@ -61,10 +62,9 @@ class SV(AbstractModel):
 
             # Train SVC with hyperparameter tuning.
             svc_clf = BayesSearchCV(
-                estimator=SVC(probability=True),
+                estimator=SVC(probability=True, kernel=tanimoto_kernel),
                 search_spaces={
                     'C': Real(1e-2, 1e2, prior='log-uniform'),
-                    'kernel': Categorical(['rbf', 'linear', 'sigmoid', 'poly']),
                     'degree': Integer(1,5),
                     'gamma': Categorical(['scale', 'auto']),
                 },
@@ -97,7 +97,7 @@ class SV(AbstractModel):
 
             # Train default implementation of SVC.
             if self.model is None:
-                self.model = SVC(probability=True)
+                self.model = SVC(probability=True, kernel=tanimoto_kernel)
             self.model.fit(train_x, self.train_y)
 
             # If a cv_score is requested, but we only have have one 
@@ -153,6 +153,13 @@ class SV(AbstractModel):
         logits = self.model.predict_proba(X_test)
         return entropy(logits, axis=1)
     
+def tanimoto_kernel(X, Y):
+    dot_product = np.dot(X, Y.T)
+    norm_X = np.sum(X ** 2, axis=1)
+    norm_Y = np.sum(Y ** 2, axis=1)
+    kernel = dot_product / (norm_X[:, None] + norm_Y[None, :] - dot_product)
+    return kernel
+    
 if __name__ == '__main__':
 
     from ClassificationSuite.Tasks.utils import load_data
@@ -165,7 +172,7 @@ if __name__ == '__main__':
     sample_points = dataset[selected_indices,:]
 
     # Train a model on the sample.
-    model = SV()
+    model = TanimotoSV()
     model.load_data(X=sample_points[:,0:-1], y=sample_points[:,-1])
     model.train()
     y_pred = model.classify(X_test=dataset[:,0:-1])

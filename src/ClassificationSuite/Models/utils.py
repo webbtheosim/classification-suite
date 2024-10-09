@@ -29,8 +29,10 @@ def get_model(name, task):
         return NN()
     if name == 'rf':
         return RF()
-    if name == 'sv':
+    if name == 'sv' and 'morgan' not in task:
         return SV()
+    if name == 'sv' and 'morgan' in task:
+        return TanimotoSV()
     if name == 'xgb':
         return XGB()
     
