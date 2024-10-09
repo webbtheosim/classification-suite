@@ -753,7 +753,7 @@ if __name__ == '__main__':
             # Prepare features.
             print('Generating features...')
             mfpgen = AllChem.GetMorganGenerator(radius=2, fpSize=1024)
-            fps = [mfpgen.GetFingerprint(m) for m in mols]
+            fps = [mfpgen.GetFingerprint(m) for m in mols_filtered]
             fps = np.array(fps).astype(int)
             data = np.hstack((fps, labels.reshape(-1,1)))
 
