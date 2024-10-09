@@ -3,18 +3,22 @@ import numpy as np
 
 from ClassificationSuite.Models import *
 
-def get_model(name):
+def get_model(name, task):
     '''
         Helper method for instantiating a specified model. 
     '''
-    if name == 'gpc':
+    if name == 'gpc' and 'morgan' not in task:
         return GPC(ard=False)
-    if name == 'gpc_ard':
+    if name == 'gpc_ard' and 'morgan' not in task:
         return GPC(ard=True)
-    if name == 'gpr':
+    if name == 'gpr' and 'morgan' not in task:
         return GPR(ard=False)
-    if name == 'gpr_ard':
+    if name == 'gpr_ard' and 'morgan' not in task:
         return GPR(ard=True)
+    if 'gpc' in name and 'morgan' in task:
+        return TanimotoGPC()
+    if 'gpr' in name and 'morgan' in task:
+        return TanimotoGPR()
     if name == 'bkde':
         return BKDE()
     if name == 'knn':

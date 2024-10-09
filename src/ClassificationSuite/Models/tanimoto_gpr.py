@@ -7,7 +7,7 @@ import torch
 
 from ClassificationSuite.Models import AbstractModel
 
-class GPR(AbstractModel):
+class TanimotoGPR(AbstractModel):
     '''
         Implementation of a Gaussian process regression
         least-squares classifier that uses the acquisi-
@@ -15,11 +15,12 @@ class GPR(AbstractModel):
     '''
     def __init__(self, ard=True):
         super().__init__()
-        self.name    = 'gpr_ard' if ard else 'gpr'
+        self.name    = 'gpr'
         self.ard     = ard
         self.scaler  = None
         self.train_x = None
         self.train_y = None
+        print('Using Tanimoto GPR!')
 
     def train(self, cv=True, n_training_iter=10000, cv_score=False):
         '''
@@ -216,18 +217,32 @@ class ExactGPModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, ard=True):
         super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
-        if ard:
-            n_dims = train_x.shape[1]
-            self.covar_module = gpytorch.kernels.ScaleKernel(
-                gpytorch.kernels.RBFKernel(ard_num_dims=n_dims)
-            )
-        else:
-            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.covar_module = gpytorch.kernels.ScaleKernel(TanimotoKernel())
 
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+    
+class TanimotoKernel(gpytorch.kernels.Kernel):
+    is_stationary = False
+    has_lengthscale = False
+    def __init__(self, **kwargs):
+        super(TanimotoKernel, self).__init__(**kwargs)
+    def forward(self, x1, x2, diag=False, **params):
+        if diag:
+            assert x1.size() == x2.size() and torch.equal(x1, x2)
+            return torch.ones(
+                *x1.shape[:-2], x1.shape[-2], dtype=x1.dtype, device=x1.device
+            )
+        return batch_tanimoto_sim(x1, x2)
+    
+def batch_tanimoto_sim(x1, x2):
+    assert x1.ndim >= 2 and x2.ndim >= 2
+    dot_prod = torch.matmul(x1, torch.transpose(x2, -1, -2))
+    x1_sum = torch.sum(x1 ** 2, dim=-1, keepdims=True)
+    x2_sum = torch.sum(x2 ** 2, dim=-1, keepdims=True)
+    return (dot_prod) / (x1_sum + torch.transpose(x2_sum, -1, -2) - dot_prod)
     
 if __name__ == '__main__':
 
@@ -241,7 +256,7 @@ if __name__ == '__main__':
     sample_points = dataset[selected_indices, :]
 
     # Train a model on the sample.
-    model = GPR(ard=True)
+    model = TanimotoGPR()
     model.load_data(X=sample_points[:,0:-1], y=sample_points[:,-1])
     cv_score = model.train(cv=True, cv_score=True)
     print(f'CV score: {cv_score}')

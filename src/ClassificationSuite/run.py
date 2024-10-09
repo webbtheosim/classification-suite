@@ -44,7 +44,7 @@ def run_active_learning(task, seed, sampler, model, visualize=False):
 
     # Initialize model.
     if 'ensemble' not in model:
-        model = get_model(name=model)
+        model = get_model(name=model, task=task)
     else:
         if model == 'ensemble_top':
             model = TopModelEnsemble(models=['nn', 'rf', 'gpc_ard'])
@@ -135,7 +135,7 @@ def run_space_filling(task, seed, sampler, model, visualize=False):
 
         # Initialize model.
         if 'ensemble' not in model:
-            model_ = get_model(name=model)
+            model_ = get_model(name=model, task=task)
         else:
             if model == 'ensemble_top':
                 model_ = TopModelEnsemble(models=['nn', 'rf', 'gpc_ard'])

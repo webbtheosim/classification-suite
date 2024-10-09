@@ -9,6 +9,8 @@ from .nn import NN
 from .rf import RF
 from .sv import SV
 from .xgb import XGB
+from .tanimoto_gpc import TanimotoGPC
+from .tanimoto_gpr import TanimotoGPR
 
 from .ensembles import AbstractEnsemble
 from .ensembles import TopModelEnsemble

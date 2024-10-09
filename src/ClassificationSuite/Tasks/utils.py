@@ -17,7 +17,7 @@ def load_data(task):
     path = Path(__file__).parent
 
     # Load dataset from appropriate directory.
-    if 'morgan' or 'mordred' in task:
+    if 'morgan' in task or 'mordred' in task:
         dataset = np.load(f'{path}/Datasets/Modified/{task}.npy')
     else:
         dataset = np.load(f'{path}/Datasets/{task}.npy')
@@ -34,6 +34,14 @@ def task_config(task):
     path = Path(__file__).parent
     f = open(f'{path}/config.json')
     config = json.load(f)
+
+    # Remove added information for tasks in Modified/.
+    if 'morgan' in task:
+        task = task[:-7]
+    elif 'mordred' in task:
+        vals = task.split('_')
+        vals = vals[:-2]
+        task = '_'.join(vals)
 
     return config[task]
 

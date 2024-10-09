@@ -7,7 +7,7 @@ import torch
 
 from ClassificationSuite.Models import AbstractModel
 
-class GPC(AbstractModel):
+class TanimotoGPC(AbstractModel):
     '''
         Implementation of a Gaussian process classifier
         that uses a Bernoulli likelihood.
@@ -15,11 +15,12 @@ class GPC(AbstractModel):
 
     def __init__(self, ard=True):
         super().__init__()
-        self.name    = 'gpc_ard' if ard else 'gpc'
+        self.name    = 'gpc'
         self.ard     = ard
         self.scaler  = None
         self.train_x = None
         self.train_y = None
+        print('Using Tanimoto GPC!')
 
     def train(self, cv=False, cv_score=False):
         '''
@@ -188,21 +189,34 @@ class ClassificationGP(gpytorch.models.ApproximateGP):
             self, train_x, variational_distribution, learn_inducing_locations=False
         )
         super(ClassificationGP, self).__init__(variational_strategy)
-
         self.mean_module = gpytorch.means.ConstantMean()
-        if ard:
-            n_dims = train_x.shape[1]
-            self.covar_module = gpytorch.kernels.ScaleKernel(
-                gpytorch.kernels.RBFKernel(ard_num_dims=n_dims)
-            )
-        else:
-            self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        self.covar_module = gpytorch.kernels.ScaleKernel(TanimotoKernel())
 
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         latent_pred = gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
         return latent_pred
+    
+class TanimotoKernel(gpytorch.kernels.Kernel):
+    is_stationary = False
+    has_lengthscale = False
+    def __init__(self, **kwargs):
+        super(TanimotoKernel, self).__init__(**kwargs)
+    def forward(self, x1, x2, diag=False, **params):
+        if diag:
+            assert x1.size() == x2.size() and torch.equal(x1, x2)
+            return torch.ones(
+                *x1.shape[:-2], x1.shape[-2], dtype=x1.dtype, device=x1.device
+            )
+        return batch_tanimoto_sim(x1, x2)
+    
+def batch_tanimoto_sim(x1, x2):
+    assert x1.ndim >= 2 and x2.ndim >= 2
+    dot_prod = torch.matmul(x1, torch.transpose(x2, -1, -2))
+    x1_sum = torch.sum(x1 ** 2, dim=-1, keepdims=True)
+    x2_sum = torch.sum(x2 ** 2, dim=-1, keepdims=True)
+    return (dot_prod) / (x1_sum + torch.transpose(x2_sum, -1, -2) - dot_prod)
     
 if __name__ == '__main__':
 
@@ -216,7 +230,7 @@ if __name__ == '__main__':
     sample_points = dataset[selected_indices, :]
 
     # Train a model on the sample.
-    model = GPC(ard=True)
+    model = TanimotoGPC(ard=True)
     model.load_data(X=sample_points[:,0:-1], y=sample_points[:,-1])
     cv_score = model.train(cv=True, cv_score=True)
     print(f'CV Score: {cv_score}')
@@ -225,11 +239,3 @@ if __name__ == '__main__':
 
     # Get scores.
     print(f'Scores: {model.score(X_test=dataset[:,0:-1], y_test=dataset[:,-1])}')
-
-    # # Visualize predictions of model.
-    # visualize_model_output(
-    #     dataset=dataset, 
-    #     chosen_points=sample_points[:,0:-1], 
-    #     y_pred=y_pred, 
-    #     y_acq=y_acq
-    # )
