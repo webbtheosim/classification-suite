@@ -21,8 +21,6 @@ def run_active_learning(task, seed, sampler, model, visualize=False):
         parameters.
     '''
 
-    print('Fuck you.')
-
     # Set all random seeds.
     np.random.seed(seed=seed)
     torch.manual_seed(seed=seed)
