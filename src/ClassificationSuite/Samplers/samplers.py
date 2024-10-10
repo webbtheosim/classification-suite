@@ -152,7 +152,9 @@ def max_entropy(domain, size, seed, neighbors=100, metric='euclidean'):
 
         # Compute contributions to score from total dataset.
         def compute_itrss(input, id):
+            datum = domain[id].reshape(1,-1)
             metric = tanimoto_kernel(input, datum)
+            metric = np.sum(metric, axis=0)
             return metric
         total = Parallel(n_jobs=-1)(delayed(compute_itrss)(domain[indices[id]], id) for id in range(domain.shape[0]))
         total = np.array(total).reshape(-1,1) / neighbors
