@@ -44,7 +44,7 @@ class NN(AbstractModel):
         self.scaler = MinMaxScaler()
         self.scaler.fit(self.train_x)
         train_x = self.scaler.transform(self.train_x)
-
+        
         # Determine number of folds for cross-validation.
         class_1 = np.where(self.train_y == 1)[0]
         class_2 = np.where(self.train_y == -1)[0]
@@ -113,7 +113,7 @@ class NN(AbstractModel):
                 m.fit(train_x[train_indices], self.train_y[train_indices])
 
             # Train individual model on entire dataset.
-            self.model.fit(X=self.train_x, y=self.train_y)
+            self.model.fit(X=train_x, y=self.train_y)
 
             # Report a CV score if requested.
             if cv_score:
@@ -127,34 +127,77 @@ class NN(AbstractModel):
                 else:
                     return 0.8
     
-    def classify(self, X_test):
+    def classify(self, X_test, batch_size=50000):
         '''
             Provide classification labels for the provided
             data.
         '''
-        return self.model.predict(self.scaler.transform(X_test))
+        if X_test.shape[0] < 100000:
+            return self.model.predict(self.scaler.transform(X_test))
+        else:
+            factor = int(X_test.shape[0] / batch_size)
+            n_batches = factor if X_test.shape[0] % batch_size == 0 else factor + 1
+            y_all = []
+            for batch_idx in range(n_batches):
+                low = batch_idx * batch_size
+                high = min((batch_idx + 1) * batch_size, X_test.shape[0])
+                sample = X_test[low:high]
+                y = self.model.predict(self.scaler.transform(sample))
+                y_all.append(y)
+            return np.hstack(y_all).reshape(-1)
     
-    def predict(self, X_test):
+    def predict(self, X_test, batch_size=50000):
         '''
             Provide classification probabilities for the provided data
             on a scale from -1 to 1.
         '''
-        y_pred_all = []
-        for model in self.models:
-            y_pred = model.predict(self.scaler.transform(X_test))
-            y_pred_all.append(y_pred)
-        return np.mean(y_pred_all, axis=0)
+        if X_test.shape[0] < 100000:
+            y_pred_all = []
+            for model in self.models:
+                y_pred = model.predict(self.scaler.transform(X_test))
+                y_pred_all.append(y_pred)
+            return np.mean(y_pred_all, axis=0)
+        else:
+            factor = int(X_test.shape[0] / batch_size)
+            n_batches = factor if X_test.shape[0] % batch_size == 0 else factor + 1
+            y_all = []
+            for batch_idx in range(n_batches):
+                low = batch_idx * batch_size
+                high = min((batch_idx + 1) * batch_size, X_test.shape[0])
+                sample = X_test[low:high]
+                y_pred = []
+                for model in self.models:
+                    y = model.predict(self.scaler.transform(sample))
+                    y_pred.append(y)
+                y_all.append(np.mean(y_pred, axis=0))
+            return np.hstack(y_all).reshape(-1)
     
-    def uncertainty(self, X_test):
+    def uncertainty(self, X_test, batch_size=50000):
         '''
             Provide uncertainty values for the provided
             data.
         '''
-        y_pred_all = []
-        for model in self.models:
-            y_pred = model.predict(self.scaler.transform(X_test))
-            y_pred_all.append(y_pred)
-        return np.std(y_pred_all, axis=0)
+        if X_test.shape[0] < 100000:
+            y_pred_all = []
+            for model in self.models:
+                y_pred = model.predict(self.scaler.transform(X_test))
+                y_pred_all.append(y_pred)
+            return np.std(y_pred_all, axis=0)
+        else:
+            factor = int(X_test.shape[0] / batch_size)
+            n_batches = factor if X_test.shape[0] % batch_size == 0 else factor + 1
+            y_all = []
+            for batch_idx in range(n_batches):
+                print(f'Uncertainty on batch {batch_idx+1} / {n_batches}.')
+                low = batch_idx * batch_size
+                high = min((batch_idx + 1) * batch_size, X_test.shape[0])
+                sample = X_test[low:high]
+                y_pred = []
+                for model in self.models:
+                    y = model.predict(self.scaler.transform(sample))
+                    y_pred.append(y)
+                y_all.append(np.std(y_pred, axis=0))
+            return np.hstack(y_all).reshape(-1)
     
 class MLPWrapper(BaseEstimator, ClassifierMixin):
     '''

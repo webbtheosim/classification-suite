@@ -1,5 +1,9 @@
 import numpy as np
 from sklearn.metrics import balanced_accuracy_score, f1_score, matthews_corrcoef
+from time import perf_counter
+
+import functools
+print = functools.partial(print, flush=True)
 
 class AbstractModel:
     ''' 
@@ -75,10 +79,10 @@ class AbstractModel:
             kriging believer scheme, where models are re-
             trained without CV.
         '''
-
+        start = perf_counter()
         sample = []
-        for _ in range(size):
-
+        for s in range(size):
+            
             # Compute acquisition function.
             y_pred = self.classify(X_test=domain)
             y_acq = self.uncertainty(X_test=domain)
@@ -99,6 +103,8 @@ class AbstractModel:
 
             # Retrain model.
             self.train(cv=False)
+        end = perf_counter()
+        print(f'{end-start:.3f} seconds for finding new points.')
 
         return sample
 

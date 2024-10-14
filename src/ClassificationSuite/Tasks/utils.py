@@ -12,12 +12,13 @@ def load_data(task):
         Loads the specified dataset from wherever the
         method is called.
     '''
+    print(f'Name of task: {task}')
 
     # Get the absolute location of the utils.py script.
     path = Path(__file__).parent
 
     # Load dataset from appropriate directory.
-    if 'morgan' in task or 'mordred' in task:
+    if 'morgan' in task or 'mordred' in task or 'large' in task:
         dataset = np.load(f'{path}/Datasets/Modified/{task}.npy')
     else:
         dataset = np.load(f'{path}/Datasets/{task}.npy')
@@ -42,6 +43,8 @@ def task_config(task):
         vals = task.split('_')
         vals = vals[:-2]
         task = '_'.join(vals)
+    elif 'large' in task:
+        task = task[:-6]
 
     return config[task]
 

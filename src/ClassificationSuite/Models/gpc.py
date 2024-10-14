@@ -131,53 +131,116 @@ class GPC(AbstractModel):
         if cv_score:
             return np.mean(test_scores)
 
-    def classify(self, X_test):
+    def classify(self, X_test, batch_size=10001):
         '''
             Provide classification labels for the provided data.
         '''
-        # Scale input.
-        input_processed = torch.DoubleTensor(self.scaler.transform(X_test))
 
-        # Make predictions.
-        self.model.eval()
-        self.likelihood.eval()
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            output = self.likelihood(self.model(input_processed))
-            classes = output.mean.float().numpy()
-            classes = 1.0 * classes + -1.0 * (1.0 - classes)
-            return np.where(classes > 0.0, 1, -1)
+        if X_test.shape[0] < batch_size:
+
+            # Scale input.
+            input_processed = torch.DoubleTensor(self.scaler.transform(X_test))
+
+            # Make predictions.
+            self.model.eval()
+            self.likelihood.eval()
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                output = self.likelihood(self.model(input_processed))
+                classes = output.mean.float().numpy()
+                classes = 1.0 * classes + -1.0 * (1.0 - classes)
+                return np.where(classes > 0.0, 1, -1)
+            
+        else:
+            self.model.eval()
+            self.likelihood.eval()
+            y_mean = []
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                factor = int(X_test.shape[0] / batch_size)
+                n_batches = factor if X_test.shape[0] % batch_size == 0 else factor + 1
+                for batch_idx in range(n_batches):
+                    low = batch_idx * batch_size
+                    high = min((batch_idx + 1) * batch_size, X_test.shape[0])
+                    sample = X_test[low:high]
+                    sample_sc = torch.DoubleTensor(self.scaler.transform(sample))
+                    output = self.likelihood(self.model(sample_sc))
+                    y = output.mean.float().numpy()
+                    y_mean.append(y)
+            y_mean = np.hstack(y_mean).reshape(-1)
+            y_mean = 1.0 * y_mean + -1.0 * (1.0 - y_mean)
+            return np.where(y_mean > 0.0, 1, -1)
         
-    def predict(self, X_test):
+    def predict(self, X_test, batch_size=50000):
         '''
             Provide classification probabilities for the provided data
             on a scale from -1 to 1.
         '''
-        # Scale input.
-        input_processed = torch.DoubleTensor(self.scaler.transform(X_test))
+        if X_test.shape[0] < batch_size:
 
-        # Make predictions.
-        self.model.eval()
-        self.likelihood.eval()
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            output = self.likelihood(self.model(input_processed))
-            classes = output.mean.float().numpy()
-            classes = 1.0 * classes + -1.0 * (1.0 - classes)
-            return classes
+            # Scale input.
+            input_processed = torch.DoubleTensor(self.scaler.transform(X_test))
+
+            # Make predictions.
+            self.model.eval()
+            self.likelihood.eval()
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                output = self.likelihood(self.model(input_processed))
+                classes = output.mean.float().numpy()
+                classes = 1.0 * classes + -1.0 * (1.0 - classes)
+                return classes
+            
+        else:
+            self.model.eval()
+            self.likelihood.eval()
+            y_mean = []
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                factor = int(X_test.shape[0] / batch_size)
+                n_batches = factor if X_test.shape[0] % batch_size == 0 else factor + 1
+                for batch_idx in range(n_batches):
+                    low = batch_idx * batch_size
+                    high = min((batch_idx + 1) * batch_size, X_test.shape[0])
+                    sample = X_test[low:high]
+                    sample_sc = torch.DoubleTensor(self.scaler.transform(sample))
+                    output = self.likelihood(self.model(sample_sc))
+                    y = output.mean.float().numpy()
+                    y_mean.append(y)
+            y_mean = np.hstack(y_mean).reshape(-1)
+            y_mean = 1.0 * classes + -1.0 * (1.0 - classes)
+            return y_mean
         
-    def uncertainty(self, X_test):
+    def uncertainty(self, X_test, batch_size=10001):
         '''
             Provide uncertainty values for the provided data.
         '''
-        # Scale input.
-        input_processed = torch.DoubleTensor(self.scaler.transform(X_test))
 
-        # Make predictions.
-        self.model.eval()
-        self.likelihood.eval()
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            output = self.likelihood(self.model(input_processed))
-            y_std = output.stddev.numpy()
-            return y_std
+        if X_test.shape[0] < batch_size:
+
+            # Scale input.
+            input_processed = torch.DoubleTensor(self.scaler.transform(X_test))
+
+            # Make predictions.
+            self.model.eval()
+            self.likelihood.eval()
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                output = self.likelihood(self.model(input_processed))
+                y_std = output.stddev.numpy()
+                return y_std
+            
+        else:
+            self.model.eval()
+            self.likelihood.eval()
+            y_std = []
+            with torch.no_grad(), gpytorch.settings.fast_pred_var():
+                factor = int(X_test.shape[0] / batch_size)
+                n_batches = factor if X_test.shape[0] % batch_size == 0 else factor + 1
+                for batch_idx in range(n_batches):
+                    low = batch_idx * batch_size
+                    high = min((batch_idx + 1) * batch_size, X_test.shape[0])
+                    sample = X_test[low:high]
+                    sample_sc = torch.DoubleTensor(self.scaler.transform(sample))
+                    output = self.likelihood(self.model(sample_sc))
+                    y = output.stddev.numpy()
+                    y_std.append(y)
+            return np.hstack(y_std).reshape(-1)
 
 class ClassificationGP(gpytorch.models.ApproximateGP):
 

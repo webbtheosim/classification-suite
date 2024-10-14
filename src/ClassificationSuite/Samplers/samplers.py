@@ -27,6 +27,8 @@ def maximin(domain, size, seed, metric='euclidean'):
         between any two points in the sample, subject to 
         a randomly chose initial point.
     '''
+
+    # Redefine distances if dealing with Morgan fingerprints.
     if metric == 'jaccard':
         print('Sampling using jaccard distance!')
 
@@ -62,20 +64,47 @@ def medoids(domain, size, seed, metric='euclidean'):
         Select a sample that minimizes the variance between
         all points in the dataset to a selected point.
     '''
+
+    # Redefine distances if dealing with Morgan fingerprints.
     if metric == 'jaccard':
         print('Sampling using jaccard distance!')
 
-    # Scale data.
-    domain = MinMaxScaler().fit_transform(domain)
+    # Use entire dataset if dealing with low domain sizes.
+    if domain.shape[0] < 30000:
 
-    # Fit k-medoids.
-    k = kmedoids.KMedoids(
-        n_clusters=size, 
-        metric=metric, 
-        random_state=seed
-    )
-    output = k.fit(X=domain, y=None)
-    sample = output.medoid_indices_.tolist()
+        # Scale data.
+        domain = MinMaxScaler().fit_transform(domain)
+
+        # Fit k-medoids.
+        k = kmedoids.KMedoids(
+            n_clusters=size, 
+            metric=metric, 
+            random_state=seed
+        )
+        output = k.fit(X=domain, y=None)
+        sample = output.medoid_indices_.tolist()
+
+    # Otherwise, down-sample to a reasonable size.
+    else:
+        print('Down-sampling...')
+
+        # Sample data.
+        domain_idx = [i for i in range(domain.shape[0])]
+        small_idx = np.random.choice(domain_idx, size=10000, replace=False)
+        domain_small = domain[small_idx]
+        domain_small = MinMaxScaler().fit_transform(domain_small)
+        
+        # Fit k-medoids.
+        k = kmedoids.KMedoids(
+            n_clusters=size, 
+            metric=metric, 
+            random_state=seed
+        )
+        output = k.fit(X=domain_small, y=None)
+        sample_small = output.medoid_indices_
+
+        # Get indices of original domain.
+        sample = small_idx[sample_small].tolist()
 
     return sample
 
@@ -86,11 +115,22 @@ def max_entropy(domain, size, seed, neighbors=100, metric='euclidean'):
         distribution with bandwidths determined by Silverman's
         rule.
     '''
+
+    # Redefine distances if dealing with Morgan fingerprints.
     if metric == 'jaccard':
         print('Sampling using jaccard distance!')
     
     # Set random seed.
     np.random.seed(seed=seed)
+
+    # If the domain size is sufficiently small.
+    down_sample = False
+    if domain.shape[0] > 30000:
+        down_sample = True
+        print('Down-sampling...')
+        domain_idx = [i for i in range(domain.shape[0])]
+        small_idx = np.random.choice(domain_idx, size=10000, replace=False)
+        domain = domain[small_idx]
 
     # Scale dataset.
     domain = MinMaxScaler().fit_transform(domain)
@@ -176,7 +216,11 @@ def max_entropy(domain, size, seed, neighbors=100, metric='euclidean'):
             # Add point to the sample.
             sample.append(new_id)
 
-    return sample
+    # Return appropriate indices.
+    if down_sample:
+        return small_idx[sample].tolist()
+    else:
+        return sample
 
 def vendi(domain, size, seed, metric='euclidean'):
     '''
@@ -185,11 +229,22 @@ def vendi(domain, size, seed, metric='euclidean'):
         in the Vendi score is the same probability
         distribution used for the max_entropy sample selection.
     '''
+
+    # Redefine distances if dealing with Morgan fingerprints.
     if metric == 'jaccard':
         print('Sampling using jaccard distance!')
 
     # Set random seed.
     np.random.seed(seed=seed)
+
+    # If the domain size is sufficiently small.
+    down_sample = False
+    if domain.shape[0] > 30000:
+        down_sample = True
+        print('Down-sampling...')
+        domain_idx = [i for i in range(domain.shape[0])]
+        small_idx = np.random.choice(domain_idx, size=10000, replace=False)
+        domain = domain[small_idx]
 
     # Scale dataset.
     domain = MinMaxScaler().fit_transform(domain)
@@ -294,7 +349,11 @@ def vendi(domain, size, seed, metric='euclidean'):
             new_index = np.argsort(-vendi_scores, axis=0)[0].item()
             sample.append(new_index)
 
-    return sample
+    # Return appropriate indices.
+    if down_sample:
+        return small_idx[sample].tolist()
+    else:
+        return sample
 
 def tanimoto_kernel(X, Y):
     '''
