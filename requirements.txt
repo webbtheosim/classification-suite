@@ -10,7 +10,6 @@ pandas==2.2.2
 pymfe==0.4.3
 rdkit==2023.9.6
 Requests==2.32.2
-sbs==0.0.1
 scikit_learn==1.4.2
 scikit_optimize==0.10.1
 scipy==1.13.0
@@ -21,3 +20,4 @@ torch==2.2.2
 torchbnn==1.2
 wget==3.2
 xgboost==2.0.3
+git+https://github.com/KitchinHUB/boundary_search.git@0.0.1
