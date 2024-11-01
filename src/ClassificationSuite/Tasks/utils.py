@@ -12,7 +12,6 @@ def load_data(task):
         Loads the specified dataset from wherever the
         method is called.
     '''
-    print(f'Name of task: {task}')
 
     # Get the absolute location of the utils.py script.
     path = Path(__file__).parent
