@@ -277,6 +277,7 @@ def vendi(domain, size, seed, metric='euclidean'):
 
             # Filter out extremely small values in the similarity matrix.
             sim_matrix = np.where(sim_matrix > 1e-20, sim_matrix, 0)
+            sim_matrix = sim_matrix / sim_matrix.shape[0]
 
             # Compute Vendi score.
             try:
